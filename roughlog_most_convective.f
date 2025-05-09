@@ -9,7 +9,7 @@
 
       ! sampling height
       real h
-      
+
       ! obukhov length
       real l_obukhov, l_upper, l_lower, l_backup, l_old
 
@@ -18,18 +18,18 @@
 
       ! sampled velocity
       real magvh
-      
+
       ! richardson number
       real rib
 
       real utau, utau_old, g, th, ts, q
-      
+
       ! newton iteration stuff
       real f, dfdl, fd_h
 
       ! log law parameters
       real kappa, z0, z1
-      
+
       ! similarity law for velocity
       real similarity_law
 
@@ -38,13 +38,13 @@
       logical ltmp
       character*20 ctmp
 !-----------------------------------------------------------------------
-      
+
 
       ! assign kappa and B and z0
       call rprm_rp_get(itmp,kappa,ltmp,ctmp,wmles_logkappa_id,rpar_real)
       call rprm_rp_get(itmp,z0,ltmp,ctmp,wmles_z0_id,rpar_real)
       call rprm_rp_get(itmp,z1,ltmp,ctmp,wmles_z1_id,rpar_real)
-      
+
       g = 9.80665
 
       ix = wmles_indices(i, 1)
@@ -58,13 +58,13 @@
       ! Sample the values at the sampling point
       ! Velocity
       magvh = wmles_solh(i, 1)**2 +
-     $        wmles_solh(i, 2)**2 +
+!     $        wmles_solh(i, 2)**2 + ***
      $        wmles_solh(i, 3)**2
       magvh = sqrt(magvh)
 
       ! Temperature
       th = wmles_solh(i, 4)
-      
+
       ! Surface temperature
       if (wmles_ifviscosity) then
         ts = wmles_solh(i, 5) !not actually supported yet!
@@ -76,28 +76,29 @@
       ! timestep
       if (ISTEP .lt. 3) then
         utau = wmles_tau(i, 1)**2 +
-     $         wmles_tau(i, 2)**2 +
+!     $         wmles_tau(i, 2)**2 + ***
      $         wmles_tau(i, 3)**2
         utau = sqrt(sqrt(utau))
       else
         utau = magvh*kappa/log(h/z0)
       end if
-      
-      
+
+
       if (ISTEP .gt. 3) then
         ! q is known
         q = wmles_q(i)
         rib = -g*h/th*q/(magvh**3*kappa**2)
-        
+
         ! Obukhov l based on the previous-step utau
         l_obukhov = -(wmles_theta0*utau**3)/(kappa*g*q)
-        
+        wmles_lobukhov(i) = l_obukhov
+
         ! In case the iteration diverges we will just use this
         l_backup = l_obukhov
-        
+
         l_old = 0
         count = 0
-c        !write(*,*) "ERR",  abs(l_old - l_obukhov)/l_obukhov 
+c        !write(*,*) "ERR",  abs(l_old - l_obukhov)/l_obukhov
         do while ((abs(l_old - l_obukhov)/abs(l_obukhov) .gt. 1e-3)
      $             .and. (count .lt. 20))
 
@@ -125,8 +126,8 @@ c          write(*,*) l_backup, l_obukhov, count, rib
             count = 20
           end if
         enddo
-        
-        
+
+
         ! if we did not converge
         if (count .eq. 20) then
           write(*,*) "Unconverged :("
@@ -134,17 +135,17 @@ c          write(*,*) l_backup, l_obukhov, count, rib
         endif
 
         ! compute u* with the new obukhov length
-        utau = kappa*magvh/similarity_law(l_obukhov, h, z0) 
-      
+        utau = kappa*magvh/similarity_law(l_obukhov, h, z0)
+
       endif
 
       ! Assign tau proportional to the velocity magnitudes at
       ! the sampling point
       wmles_tau(i, 1) = -utau**2*wmles_solh(i, 1)/magvh
-      wmles_tau(i, 2) = -utau**2*wmles_solh(i, 2)/magvh
+      wmles_tau(i, 2) = 0 !-utau**2*wmles_solh(i, 2)/magvh !***
       wmles_tau(i, 3) = -utau**2*wmles_solh(i, 3)/magvh
       end
-      
+
 
 !> @brief Compute correction for the u log law in the convective case
       real function correction(z, l)
@@ -159,16 +160,16 @@ c          write(*,*) l_backup, l_obukhov, count, rib
      $             2*atan(xi) + pi/2
 
       end
-      
+
 !> @brief Compute the similarity law for velocity
       real function similarity_law(l_obukhov, h, z0)
       implicit none
-      
+
       real l_obukhov, h, z0
       real correction
 !-----------------------------------------------------------------------
-      
+
       similarity_law = log(h/z0) - correction(h, l_obukhov)
      $                           + correction(z0, l_obukhov)
-      
+
       end
