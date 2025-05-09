@@ -38,6 +38,11 @@
         wmles_tau_field(ix, iy, iz, ie, 3) = wmles_tau(i_linear, 3)
 
         if (ifheat) then
+          if (wmles_surface_temp.gt.0.0) then
+            write(*,*) "Computing q based on surface temperature"
+          else
+            write(*,*) "Using prescribed q"
+          endif
           call wmles_set_heat_flux(i_linear)
         end if
       enddo
@@ -134,13 +139,10 @@
       endif
 
 !      if (nid .eq. 0) then
-!        open(unit=61, file='wmles_tau.dat', position='append')
-!        write(61,*) time, ",", utau, ",",
-!     $       total(1)/totalarea, ",", total(2)/totalarea,
-!     $       ",", total(3)/totalarea
-!        close(61)
-!      endif
-
+        open(unit=61, file='ts.dat', position='append')
+        write(61,*) time, ",", wmles_solh(:, 5)
+        close(61)
+      endif
       end subroutine
 !=======================================================================
       subroutine wmles_set_h_from_indices()

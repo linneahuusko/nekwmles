@@ -85,9 +85,15 @@
 
 
       if (ISTEP .gt. 3) then
-        ! q is known
-        q = wmles_q(i)
-        rib = -g*h/th*q/(magvh**3*kappa**2)
+        if (wmles_surface_temp.gt.0.0) then
+          write(*,*) "Computing q based on surface temperature - debug"
+          q = kappa*utau*(ts - th)/log(h/z1)
+          rib = g*h/th*(th - ts)/magvh**2
+        else
+          write(*,*) "Using prescribed q - debug"
+          q = wmles_q(i)
+          rib = -g*h/th*q/(magvh**3*kappa**2)
+        endif
 
         ! Obukhov l based on the previous-step utau
         l_obukhov = -(wmles_theta0*utau**3)/(kappa*g*q)
@@ -110,7 +116,7 @@ c        !write(*,*) "ERR",  abs(l_old - l_obukhov)/l_obukhov
           l_upper = l_obukhov + fd_h
           l_lower = l_obukhov - fd_h
 
-          f = (rib - h/l_obukhov/similarity_law(l_obukhov, h, z0)**3)
+          f = (rib - h/l_obukhov/similarity_law(l_obukhov, h, z0)**3) ! **3 or **1 ???
 
           dfdl = (-h/l_upper/similarity_law(l_upper, h, z0)**3)
           dfdl = dfdl + (h/l_lower/similarity_law(l_lower, h, z0)**3)
@@ -134,9 +140,16 @@ c          write(*,*) l_backup, l_obukhov, count, rib
           l_obukhov = l_backup
         endif
 
+        ! udate stored values
+        wmles_lobukhov(i) = l_obukhov
+
         ! compute u* with the new obukhov length
         utau = kappa*magvh/similarity_law(l_obukhov, h, z0)
 
+        if (wmles_surface_temp.gt.0.0) then
+          ! compute q with the new obukhov length
+          q = kappa*utau*(ts - th)/similarity_law_q(l_obukhov, h, z0)
+        endif
       endif
 
       ! Assign tau proportional to the velocity magnitudes at
@@ -144,6 +157,7 @@ c          write(*,*) l_backup, l_obukhov, count, rib
       wmles_tau(i, 1) = -utau**2*wmles_solh(i, 1)/magvh
       wmles_tau(i, 2) = 0 !-utau**2*wmles_solh(i, 2)/magvh !***
       wmles_tau(i, 3) = -utau**2*wmles_solh(i, 3)/magvh
+      wmles_q(i) = q
       end
 
 
