@@ -13,8 +13,8 @@
 
       ! Timer function and current time place holder
       real dnekclock, ltim
-      
-      ! Start the timer 
+
+      ! Start the timer
       ltim = dnekclock()
 
       ! Sample the solution values at h
@@ -23,12 +23,12 @@
       i_linear = 0
 
       do i_linear = 1, wmles_nbpoints
-      
+
         ix  = wmles_indices(i_linear, 1)
         iy  = wmles_indices(i_linear, 2)
         iz  = wmles_indices(i_linear, 3)
         ie  = wmles_indices(i_linear, 4)
-        
+
         ! compute tau_w for this wall point
         call wmles_set_momentum_flux(i_linear)
 
@@ -55,13 +55,13 @@
       call mntr_tmr_add(wmles_tmr_tot_id, 1, ltim)
       end subroutine
 !=======================================================================
-      subroutine wmles_print_averaged_quantities()
+      subroutine wmles_print_averaged_quantities(time)
       implicit none
 
       include 'SIZE'
       include 'INPUT'
       include 'WMLES'
-      
+
       ! alias for wmles_nbpoints to shorten stuff
       integer nbp, totalnbp
 
@@ -69,7 +69,7 @@
       real glsc2, glsum, vlsum
 
       integer iglsum
-      
+
       ! max and min
       real glmax, glmin
 
@@ -77,7 +77,9 @@
       real total(13)
 
       real totalarea, utau
-      
+
+      real time
+
       nbp = wmles_nbpoints
 
       totalarea = glsum(vlsum(wmles_areas(1:nbp), nbp), 1)
@@ -116,8 +118,28 @@
         write(*,*) "[WMLES] average L obukhov =", total(11)/totalarea,
      $             total(12), total(13)
         endif
-      
+
       endif
+
+      ! utau, u, v, w, q, L, t, ts
+      if (nid .eq. 0) then
+        open(unit=60, file='wmles.dat', position='append')
+        write(60,*) time, ",", utau, ",", total(1)/totalarea, ",",
+     $       total(2)/totalarea, ",", total(3)/totalarea, ",",
+     $       total(9)/totalarea, ",", total(11)/totalarea, ",",
+     $       total(4)/totalarea, ",", total(5)/totalarea
+!     , ",", total(12),
+!     $       ",", total(13)
+        close(60)
+      endif
+
+!      if (nid .eq. 0) then
+!        open(unit=61, file='wmles_tau.dat', position='append')
+!        write(61,*) time, ",", utau, ",",
+!     $       total(1)/totalarea, ",", total(2)/totalarea,
+!     $       ",", total(3)/totalarea
+!        close(61)
+!      endif
 
       end subroutine
 !=======================================================================
@@ -137,7 +159,7 @@
 
       ! input h rounded to integer
       integer hind
-      
+
       ! the sampling distace for the current node
       real h
 
@@ -147,14 +169,14 @@
       i_linear = 0
 
       do ielem=1, lelv
-        do iface=1, 6 
+        do iface=1, 6
           if (boundaryID(iface, ielem) .eq. wmles_wallbid) then
 
             ! Grab index limits for traversing the face
             call facind(frangex1, frangex2, frangey1,
      $                  frangey2, frangez1, frangez2,
      $                  lx1, ly1, lz1, iface)
-            
+
             do ifacez=frangez1, frangez2
               do ifacey=frangey1, frangey2
                 do ifacex=frangex1, frangex2
@@ -162,10 +184,10 @@
 
                   if (i_linear .gt. NMAX_BOUNDARY_POINTS) then
                       write(*,*) "ERROR: Increase N_BOUNDARY_PONTS!",
-     $                  nid, i_linear                 
+     $                  nid, i_linear
                       call exitt0
                   endif
-                  
+
                   ! round the input h to integer
                   hind = int(wmles_sampling_h(i_linear))
 
@@ -180,7 +202,7 @@
                   call wmles_distance_from_index(h, hind,
      $                                           ifacex, ifacey, ifacez,
      $                                           iface, ielem)
-                  wmles_sampling_h(i_linear) = h 
+                  wmles_sampling_h(i_linear) = h
 
                 end do
               end do
@@ -200,12 +222,12 @@
 !! @param[in]    ifacez          the z index of the face node
 !! @param[in]    iface           the index of the face in an element
 !! @param[in]    ielem           the index of the element
-!! @param[in]    wmles_sampling_idx     the wall-normal index of the sampling point 
+!! @param[in]    wmles_sampling_idx     the wall-normal index of the sampling point
       subroutine wmles_distance_from_index(h, sampling_idx,
      $                                     ifacex, ifacey, ifacez,
      $                                     iface, ielem)
       implicit none
-     
+
       include 'SIZE'
       include 'GEOM'
       include 'WMLES'
@@ -213,16 +235,16 @@
       real xw, yw, zw, xh, yh, zh, h
       integer ifacex, ifacey, ifacez
       integer iface, ielem
-      
+
       ! input h rounded to integer
       integer sampling_idx
 
       ! Timer function and current time place holder
       real dnekclock, ltim
-      
-      ! Start the timer 
+
+      ! Start the timer
       ltim = dnekclock()
-      
+
       ! The wall node
       xw = xm1(ifacex, ifacey, ifacez, ielem)
       yw = ym1(ifacex, ifacey, ifacez, ielem)
@@ -231,7 +253,7 @@
       ! We figure out the index the sampling point
       ! location based on the plane the face is in
       if (iface .eq. 1) then
-        ! Face corresponds to x-z plane at y = -1 
+        ! Face corresponds to x-z plane at y = -1
         xh = xm1(ifacex, sampling_idx + 1, ifacez, ielem)
         yh = ym1(ifacex, sampling_idx + 1, ifacez, ielem)
         zh = zm1(ifacex, sampling_idx + 1, ifacez, ielem)
@@ -305,14 +327,14 @@
 
       ! weight for time-averaging
       real eps
-      
-      ! area-weighted averaging 
+
+      ! area-weighted averaging
       real glsc2, glsum, vlsum, totalarea
 
       ! Timer function and current time place holder
       real dnekclock, ltim
 
-      ! Start the timer 
+      ! Start the timer
       ltim = dnekclock()
 
       if (ISTEP .eq. 0) then
@@ -324,7 +346,7 @@
       if (ifheat) then
           ! temperature and surface temperature
           n_fields = 5
-      else 
+      else
           n_fields = 3
       endif
 
@@ -365,21 +387,21 @@
             wmles_solh(i, j) = (1-eps)*wmles_solh(i, j) +
      $        eps*temp_solh(i, j)
           enddo
-          
+
           if (ifheat) then
             ! time-average the temperature
             wmles_solh(i, 4) = (1-eps)*wmles_solh(i, 4) +
      $        eps*temp_solh(i, 4)
-            
+
             ! sample wall temperature (should we average it?)
             wmles_solh(i, 5) =
      $        t(wmles_indices(i, 1),
      $          wmles_indices(i, 2),
      $          wmles_indices(i, 3),
      $          wmles_indices(i, 4), 1)
-          endif  
+          endif
         enddo
-      
+
       totalarea = glsum(vlsum(wmles_areas(1:wmles_nbpoints),
      $                  wmles_nbpoints), 1)
 
@@ -394,7 +416,7 @@
      $                            wmles_nbpoints)/totalarea
       wmles_ts_average = glsc2(wmles_solh(:, 5), wmles_areas,
      $                            wmles_nbpoints)/totalarea
-      
+
       ! Stop the timer and add to total
       ltim = dnekclock() - ltim
       call mntr_tmr_add(wmles_tmr_sampling_id, 1, ltim)
@@ -417,17 +439,17 @@
 
       ! sij components at a node
       real sxx, sxy, sxz, syx, syy, syz, szx, szy, szz
-      
+
       ! S_ij n_j dot product components at a wall node
       real snx, sny, snz, magsij
 
       real dtdx(lx1,ly1,lz1,lelv)
       real dtdy(lx1,ly1,lz1,lelv)
       real dtdz(lx1,ly1,lz1,lelv)
-      
+
       ! normal wall stress
       real snormal
-      
+
       ! the magnitude of the wall shear stress predicted by the model
       real magtau
 
@@ -444,10 +466,10 @@
       integer i_linear, ielem, iface, inorm
       integer frangex1, frangex2, frangey1, frangey2, frangez1, frangez2
       integer ifacex, ifacey, ifacez
-      
-      ! compute the rate of strain. 
+
+      ! compute the rate of strain.
       call comp_sij(sij,6,vx,vy,vz,ur,us,ut,vr,vs,vt,wr,ws,wt)
-      
+
       if (ifheat) then
         call gradm1(dtdx, dtdy, dtdz, t)
       endif
@@ -466,7 +488,7 @@
                 do ifacex=frangex1, frangex2
                   i_linear = i_linear + 1
                   inorm = inorm + 1
-                  
+
                   ! grab the normal
                   normalx = unx(inorm, 1, iface, ielem)
                   normaly = uny(inorm, 1, iface, ielem)
@@ -483,7 +505,7 @@
                   szx = sij(ifacex, ifacey, ifacez, 6, ielem)
                   szy = sij(ifacex, ifacey, ifacez, 5, ielem)
                   szz = sij(ifacex, ifacey, ifacez, 3, ielem)
-                  
+
                   ! compute the dot product S_ijn_j at the wall
                   snx = sxx*normalx + sxy*normaly + sxz*normalz
                   sny = syx*normalx + syy*normaly + syz*normalz
@@ -497,7 +519,7 @@
                   snx = snx - normalx*snormal
                   sny = sny - normaly*snormal
                   snz = snz - normalz*snormal
-                  
+
                   ! reconstruct the magnitude of tau from the components
                   magtau =
      $              sqrt
@@ -508,14 +530,14 @@
      $              )
 
                   magsij = sqrt(snx**2 + sny**2 + snz**2)
-                  vdiff(ifacex, ifacey, ifacez, ielem, 1) = 
+                  vdiff(ifacex, ifacey, ifacez, ielem, 1) =
      $              magtau/(magsij + 1e-10)
                 end do
               end do
             end do
-            
+
           endif
-        
+
         end do
       end do
 
@@ -538,19 +560,19 @@
 
       ! sij components at a node
       real sxx, sxy, sxz, syx, syy, syz, szx, szy, szz
-      
+
       ! S_ij n_j dot product components at a wall node
       real snx, sny, snz, magsij
 
       real dtdx(lx1,ly1,lz1,lelv)
       real dtdy(lx1,ly1,lz1,lelv)
       real dtdz(lx1,ly1,lz1,lelv)
-      
+
       ! normal wall stress
       real snormal
 
       real total_tau(3), totalarea
-      
+
       ! the magnitude of the wall shear stress predicted by the model
       real magtau
 
@@ -569,12 +591,12 @@
       integer i_linear, ielem, iface, inorm
       integer frangex1, frangex2, frangey1, frangey2, frangez1, frangez2
       integer ifacex, ifacey, ifacez
-      
-      ! compute the rate of strain. 
+
+      ! compute the rate of strain.
       call comp_sij(sij,6,vx,vy,vz,ur,us,ut,vr,vs,vt,wr,ws,wt)
-      
+
       if (ifheat) then
-        call gradm1(dtdx, dtdy, dtdz, t)   
+        call gradm1(dtdx, dtdy, dtdz, t)
       endif
 
       total_tau = 0
@@ -596,7 +618,7 @@
                   inorm = inorm + 1
 
                   totalarea = totalarea + wmles_areas(i_linear)
-                  
+
                   ! grab the normal
                   normalx = unx(inorm, 1, iface, ielem)
                   normaly = uny(inorm, 1, iface, ielem)
@@ -613,7 +635,7 @@
                   szx = sij(ifacex, ifacey, ifacez, 6, ielem)
                   szy = sij(ifacex, ifacey, ifacez, 5, ielem)
                   szz = sij(ifacex, ifacey, ifacez, 3, ielem)
-                  
+
                   ! compute the dot product S_ijn_j at the wall
                   snx = sxx*normalx + sxy*normaly + sxz*normalz
                   sny = syx*normalx + syy*normaly + syz*normalz
@@ -627,7 +649,7 @@
                   snx = snx - normalx*snormal
                   sny = sny - normaly*snormal
                   snz = snz - normalz*snormal
-                  
+
 
                   magsij = sqrt(snx**2 + sny**2 + snz**2)
 
@@ -645,7 +667,7 @@
                 end do
               end do
             end do
-            
+
           endif
         end do
       end do
