@@ -87,18 +87,21 @@
         utau = magvh*kappa/log(h/z0)
       end if
 
-      if (temperature_forcing) then
+      if (wmles_forcing_type .eq. surface_temperature) then
         q = kappa*utau*(ts - th)/log(h/z1)
-      else
+      elseif (wmles_forcing_type .eq. surface_heat_flux) then
         q = wmles_q(i)
+      elseif (wmles_forcing_type .eq. no_forcing_type) then
+          write(*,*) "No surface forcing type set!"
+          stop
       endif
 
 
       if (ISTEP .gt. 3) then
-        if (temperature_forcing) then
+        if (wmles_forcing_type .eq. surface_temperature) then
           q = kappa*utau*(ts - th)/log(h/z1)
           rib = g*h/th*(th - ts)/magvh**2
-        else
+        elseif (wmles_forcing_type .eq. surface_heat_flux) then
           q = wmles_q(i)
           rib = -g*h/th*q/(magvh**3*kappa**2)
         endif
@@ -113,14 +116,14 @@
         l_old = 0
         count = 0
         if (rib.eq.0) then ! neutral (use log law computed above)
-          if (i.eq.1) then
-            write(*,*) "Neutral"
-          endif
+          ! if (i.eq.1) then
+          !   write(*,*) "Neutral", rib
+          ! endif
           l_obukhov = 0
-        elseif (rib.lt.0) then ! convective
-          if (i.eq.1) then
-            write(*,*) "Convective"
-          endif
+        elseif (abs(rib).lt.0) then ! convective
+          ! if (i.eq.1) then
+          !   write(*,*) "Convective", rib
+          ! endif
           do while ((abs(l_old - l_obukhov)/abs(l_obukhov) .gt. 1e-3)
      $             .and. (count .lt. 20))
 
@@ -131,7 +134,7 @@
             fd_h = 1e-3*l_obukhov
             l_upper = l_obukhov + fd_h
             l_lower = l_obukhov - fd_h
-            if (temperature_forcing) then
+            if (wmles_forcing_type .eq. surface_temperature) then
               f=(rib - h/l_obukhov
      $          *similarity_law_q_conv(l_obukhov, h, z0)
      $          /similarity_law_u_conv(l_obukhov, h, z0)**2)
@@ -141,7 +144,7 @@
      $             *similarity_law_q_conv(l_lower, h, z0)
      $             /similarity_law_u_conv(l_lower, h, z0)**2)
               dfdl = dfdl/(2*fd_h)
-            else
+            elseif (wmles_forcing_type .eq. surface_heat_flux) then
               f = (rib - h/l_obukhov/
      $        similarity_law_u_conv(l_obukhov, h, z0)**3)
 
@@ -164,24 +167,24 @@
         else ! stable
           a = 5.0
           b = 5.0
-          if (i.eq.1) then
-            write(*,*) "Stable"
-          endif
+          ! if (i.eq.1) then
+          !   write(*,*) "Stable", rib
+          ! endif
           do while ((abs(l_old - l_obukhov)/abs(l_obukhov) .gt. 1e-3)
      $           .and. (count .lt. 20))
 
           l_old = l_obukhov
           count = count + 1
-          if (temperature_forcing) then
+          if (wmles_forcing_type .eq. surface_temperature) then
             f = rib - h/l_obukhov*
      $              similarity_law_q_stable(l_obukhov, h, z0)/
      $              similarity_law_u_stable(l_obukhov, h, z0)**2
 
             dfdl = ((h*log(h/z0)*(2*a*h - b*h + l_obukhov*log(h/z0)))/
      $            (b*h + l_obukhov*log(h/z0))**3)
-          else
+          elseif (wmles_forcing_type .eq. surface_heat_flux) then
             write(*,*) "Not implemented yet!"
-            stop
+            call exitt
           endif
           l_obukhov = l_obukhov - f/dfdl
 
@@ -196,19 +199,20 @@
 
         ! if we did not converge
         if (count .eq. 20) then
-          write(*,*) "Unconverged :("
+          ! write(*,*) "Unconverged :("
           l_obukhov = l_backup
         endif
 
-        ! store the computed Obukhov length
+        ! store the computed Obukhov length and Richardson number
         wmles_lobukhov(i) = l_obukhov
+        wmles_ri(i) = rib
 
         if (rib.lt.0) then ! convective
           ! compute u* with the new obukhov length
           utau = kappa*magvh/similarity_law_u_conv(l_obukhov, h, z0)
 
           ! compute the surface heat flux if the temperature is prescribed
-          if (temperature_forcing) then
+          if (wmles_forcing_type .eq. surface_temperature) then
             q = kappa*utau*(ts - th)
      $          /similarity_law_q_conv(l_obukhov, h, z0)
           endif
@@ -217,7 +221,7 @@
           utau = kappa*magvh/similarity_law_u_stable(l_obukhov, h, z0)
 
           ! compute the surface heat flux if the temperature is prescribed
-          if (temperature_forcing) then
+          if (wmles_forcing_type .eq. surface_temperature) then
             q = kappa*utau*(ts - th)
      $          /similarity_law_q_stable(l_obukhov, h, z0)
           endif
