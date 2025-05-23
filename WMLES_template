@@ -15,7 +15,7 @@ c     initialisation flag
 
 c     Runtime parameter part
 c     section id
-      integer wmles_sec_id  
+      integer wmles_sec_id
 c     kappa in the log law
       integer wmles_logkappa_id
 c     B in the log law
@@ -24,7 +24,7 @@ c     z0 in the rough log law and z1 for temperature
       integer wmles_z0_id, wmles_z1_id
 c     inital guess for the wall-shear stress
       integer wmles_guess_id
-c     the boundary id identifying walls on which modelling is applied 
+c     the boundary id identifying walls on which modelling is applied
       integer wmles_bid_id
 c     wether to use wall viscosity or a traction boundary
       integer wmles_ifviscosity_id
@@ -36,22 +36,24 @@ c     whether h is index or distance
       integer wmles_h_is_index_id
 c     reference temperature for abl cases
       integer wmles_theta0_id
-      
+
 c     Timers
 c     total
       integer wmles_tmr_tot_id
 c     sampling
       integer wmles_tmr_sampling_id
-      
-      
-c     wall shear stress       
+
+
+c     wall shear stress
       real wmles_tau(NMAX_BOUNDARY_POINTS, 3)
 c     wall shear stress as a full field, for saving with the statistics
       real wmles_tau_field(lx1, ly1, lz1, lelv, 3)
-c     wall heat flux      
+c     wall heat flux
       real wmles_q(NMAX_BOUNDARY_POINTS)
 c     obukhov length
       real wmles_lobukhov(NMAX_BOUNDARY_POINTS)
+c     Richardson number
+      real wmles_ri(NMAX_BOUNDARY_POINTS)
 
 c     sampled solution
       real wmles_solh(NMAX_BOUNDARY_POINTS, 5)
@@ -78,6 +80,12 @@ c     number of iterations defining the time-scale for averaging
       real wmles_navrg
 c     surface temperature
       real wmles_surface_temp
+c     kind of surface forcing, surface heat flux or surface temperature
+      integer wmles_forcing_type
+      integer no_forcing_type, surface_heat_flux, surface_temperature
+      parameter (no_forcing_type = -1)
+      parameter (surface_heat_flux = 0)
+      parameter (surface_temperature = 1)
 c     reference temperature for abls cases
       real wmles_theta0
 
@@ -109,7 +117,7 @@ c     Common blocks split by variable type
      $                wmles_iffind
 
       common /wmlesr/ wmles_navrg, wmles_surface_temp,
-     $ wmles_sampling_h, wmles_sampling_points,
+     $ wmles_sampling_h, wmles_sampling_points, wmles_forcing_type,
      $ wmles_solh, wmles_normals, wmles_tau, wmles_q, wmles_areas,
-     $ wmles_theta0, wmles_lobukhov, wmles_uh_average, wmles_th_average,
-     $ wmles_ts_average, wmles_tau_field
+     $ wmles_theta0, wmles_lobukhov, wmles_ri, wmles_uh_average,
+     $ wmles_th_average, wmles_ts_average, wmles_tau_field
