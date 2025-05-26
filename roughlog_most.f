@@ -120,7 +120,7 @@
           !   write(*,*) "Neutral", rib
           ! endif
           l_obukhov = 0
-        elseif (abs(rib).lt.0) then ! convective
+        elseif (rib.lt.0) then ! convective
           ! if (i.eq.1) then
           !   write(*,*) "Convective", rib
           ! endif
