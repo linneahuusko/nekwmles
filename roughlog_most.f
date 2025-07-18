@@ -115,12 +115,12 @@
 
         l_old = 0
         count = 0
-        if (rib.eq.0) then ! neutral (use log law computed above)
+        if (abs(rib).lt.0.01) then ! neutral (use log law computed above)
           ! if (i.eq.1) then
           !   write(*,*) "Neutral", rib
           ! endif
           l_obukhov = 0
-        elseif (rib.lt.0) then ! convective
+        elseif (rib.lt.-0.01) then ! convective
           ! if (i.eq.1) then
           !   write(*,*) "Convective", rib
           ! endif
@@ -207,7 +207,9 @@
         wmles_lobukhov(i) = l_obukhov
         wmles_ri(i) = rib
 
-        if (rib.lt.0) then ! convective
+        ! if the case is neutral the previously calculated
+        ! values will be used without correction
+        if (rib.lt.-0.01) then ! convective
           ! compute u* with the new obukhov length
           utau = kappa*magvh/similarity_law_u_conv(l_obukhov, h, z0)
 
@@ -216,7 +218,7 @@
             q = kappa*utau*(ts - th)
      $          /similarity_law_q_conv(l_obukhov, h, z0)
           endif
-        elseif (rib.gt.0) then ! stable
+        elseif (rib.gt.0.01) then ! stable
           ! compute u* with the new obukhov length
           utau = kappa*magvh/similarity_law_u_stable(l_obukhov, h, z0)
 
