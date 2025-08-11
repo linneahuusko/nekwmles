@@ -134,6 +134,10 @@ c          write(*,*) l_backup, l_obukhov, count, rib
           l_obukhov = l_backup
         endif
 
+        ! udate stored values
+        wmles_lobukhov(i) = l_obukhov
+        wmles_ri(i) = rib
+
         ! compute u* with the new obukhov length
         utau = kappa*magvh/similarity_law(l_obukhov, h, z0)
 

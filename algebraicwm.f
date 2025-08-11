@@ -79,7 +79,7 @@
       real glmax, glmin
 
       ! just a work array
-      real total(13)
+      real total(18)
 
       real totalarea, utau
 
@@ -97,6 +97,8 @@
         total(4) = glsc2(wmles_solh(:, 4), wmles_areas, nbp)
         total(5) = glsc2(wmles_solh(:, 5), wmles_areas, nbp)
         total(9) = glsc2(wmles_q, wmles_areas, nbp)
+        total(17) = glmin(wmles_q, nbp)
+        total(18) = glmax(wmles_q, nbp)
       endif
       total(6) = glsc2(wmles_tau(:, 1), wmles_areas, nbp)
       total(7) = glsc2(wmles_tau(:, 2), wmles_areas, nbp)
@@ -105,6 +107,9 @@
       total(11) = glsc2(wmles_lobukhov, wmles_areas, nbp)
       total(12) = glmin(wmles_lobukhov, nbp)
       total(13) = glmax(wmles_lobukhov, nbp)
+      total(14) = glsc2(wmles_ri, wmles_areas, nbp)
+      total(15) = glmin(wmles_ri, nbp)
+      total(16) = glmax(wmles_ri, nbp)
 
       utau = sqrt(sqrt((total(6)/totalarea)**2 +
      $                 (total(7)/totalarea)**2 +
@@ -117,32 +122,31 @@
         write(*,*) "[WMLES] average v =", total(1)/totalarea,
      $    total(2)/totalarea, total(3)/totalarea
         if (ifheat) then
-        write(*,*) "[WMLES] average q =", total(9)/totalarea
+        write(*,*) "[WMLES] average q =", total(9)/totalarea,
+     $   total(17), total(18)
         write(*,*) "[WMLES] average t, ts =", total(4)/totalarea,
      $    total(5)/totalarea
         write(*,*) "[WMLES] average L obukhov =", total(11)/totalarea,
      $             total(12), total(13)
+        write(*,*) "[WMLES] average Ri =", total(14)/totalarea,
+     $   total(15), total(16)
         endif
 
       endif
 
-      ! utau, u, v, w, q, L, t, ts
+      ! utau, u, v, w, q, q_min, q_max, L, Lmin, Lmax, t, ts, Ri, Ri_min, Ri_max
       if (nid .eq. 0) then
         open(unit=60, file='wmles.dat', position='append')
         write(60,*) time, ",", utau, ",", total(1)/totalarea, ",",
      $       total(2)/totalarea, ",", total(3)/totalarea, ",",
-     $       total(9)/totalarea, ",", total(11)/totalarea, ",",
-     $       total(4)/totalarea, ",", total(5)/totalarea
-!     , ",", total(12),
-!     $       ",", total(13)
+     $       total(9)/totalarea, ",", total(17), ",", total(18),
+     $        ",", total(11)/totalarea, ",",
+     $       total(12), ",", total(13), ",",
+     $       total(4)/totalarea, ",", total(5)/totalarea, ",",
+     $       total(14)/totalarea, ",", total(15), ",", total(16)
         close(60)
       endif
 
-!      if (nid .eq. 0) then
-        open(unit=61, file='ts.dat', position='append')
-        write(61,*) time, ",", wmles_solh(:, 5)
-        close(61)
-      endif
       end subroutine
 !=======================================================================
       subroutine wmles_set_h_from_indices()

@@ -170,7 +170,7 @@ c            write(*,*) l_obukhov, magvh, th, count, wmles_uh_average
           endif
           ! udate stored values
           wmles_lobukhov(i) = l_obukhov
-
+          wmles_ri(i) = rib
           ! compute u* with the new obukhov length
           utau = kappa*magvh/similarity_law_u(l_obukhov, h, z0)
 
