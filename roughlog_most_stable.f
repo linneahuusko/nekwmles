@@ -68,7 +68,7 @@ c     $        wmles_solh(i, 2)**2 +
 c     $        wmles_solh(i, 3)**2
 
       magvh = wmles_uh_average(1)**2 +
-!     $        wmles_uh_average(2)**2 +
+     $        wmles_uh_average(2)**2 +
      $        wmles_uh_average(3)**2
 
       magvh = sqrt(magvh)
@@ -92,6 +92,7 @@ c      th = wmles_solh(i, 4)
 
       ! Get uncorrected utau for a first guess
       utau = magvh*kappa/log(h/z0)
+      q = kappa*utau*(ts - th)/log(h/z1)
 
 c      write(*,*) utau, q
 
@@ -101,18 +102,12 @@ c      write(*,*) utau, q
       diverged = .false.
 
       if (ISTEP .gt. 3) then
-            if (wmles_surface_temp.gt.0.0) then
-                  write(*,*) "Computing q based on surface temperature - debug"
-                  q = kappa*utau*(ts - th)/log(h/z1)
-                  rib = g*h/th*(th - ts)/magvh**2
-            else
-                  write(*,*) "Using prescribed q - debug"
-                  q = wmles_q(i)
-                  rib = -g*h/th*q/(magvh**3*kappa**2)
-            endif
+
+        rib = g*h/th*(th - ts)/magvh**2
 
         ! Obukhov l based on the previous-step utau and q
         l_obukhov = -(wmles_theta0*utau**3)/(kappa*g*q)
+
         wmles_lobukhov(i) = l_obukhov
 
         if (l_obukhov .ge. 20000) then
@@ -178,17 +173,16 @@ c            write(*,*) l_obukhov, magvh, th, count, wmles_uh_average
 
           ! compute u* with the new obukhov length
           utau = kappa*magvh/similarity_law_u(l_obukhov, h, z0)
-          if (wmles_surface_temp.gt.0.0) then
-            ! compute q with the new obukhov length
-            q = kappa*utau*(ts - th)/similarity_law_q(l_obukhov, h, z0)
-          endif
+
+          ! compute q with the new obukhov length
+          q = kappa*utau*(ts - th)/similarity_law_q(l_obukhov, h, z0)
         endif
       endif
 
       ! Assign tau proportional to the velocity magnitudes at
       ! the sampling point
       wmles_tau(i, 1) = -utau**2*wmles_solh(i, 1)/magvh
-      wmles_tau(i, 2) = 0 ! -utau**2*wmles_solh(i, 2)/magvh
+      wmles_tau(i, 2) = -utau**2*wmles_solh(i, 2)/magvh
       wmles_tau(i, 3) = -utau**2*wmles_solh(i, 3)/magvh
       wmles_q(i) = q
       end subroutine
