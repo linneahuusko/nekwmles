@@ -2,6 +2,7 @@
 !! @ingroup wmles
 !! @brief Wall-modelling for LES
 !! @details
+!! @details
 !! @author Timofey Mukha
 !! @date 2020
 !=======================================================================
@@ -10,6 +11,7 @@
 !! @note This routine should be called in frame_usr_register
       subroutine wmles_register()
       implicit none
+
 
       include 'SIZE'
       include 'INPUT'
@@ -27,6 +29,7 @@
       ! timing
       ltim = dnekclock()
 
+
       ! check if the current module was already registered
       call mntr_mod_is_name_reg(lpmid, wmles_name)
       if (lpmid.gt.0) then
@@ -34,6 +37,7 @@
      $        'module ['//trim(wmles_name)//'] already registered')
          return
       endif
+
 
       ! find parent module
       call mntr_mod_is_name_reg(lpmid,'FRAME')
@@ -43,9 +47,11 @@
      $        'parent module ['//'FRAME'//'] not registered')
       endif
 
+
       ! register module
       call mntr_mod_reg(wmles_id,lpmid,wmles_name,
      $      'Wall-Modelled LES')
+
 
       ! register timers
       call mntr_tmr_is_name_reg(lpmid,'FRM_TOT')
@@ -256,6 +262,11 @@
       real svy(lx1, ly1, lz1, nelt)
       real svz(lx1, ly1, lz1, nelt)
       real svt(lx1, ly1, lz1, nelt)
+      real ustar(lx1, ly1, lz1, nelt)
+      real L(lx1, ly1, lz1, nelt)
+      real Ri(lx1, ly1, lz1, nelt)
+      real q(lx1, ly1, lz1, nelt)
+      real local_index(lx1, ly1, lz1, nelt)
 
       integer ntot
       ! Loop ranges for traversing face nodes
@@ -314,6 +325,16 @@ c
                   if (ifheat) then
                     svt(ifacex, ifacey, ifacez, ielem) =
      $                wmles_solh(i_linear, 4)
+                    ustar(ifacex, ifacey, ifacez, ielem) =
+     $                 wmles_ustar(i_linear)
+                    L(ifacex, ifacey, ifacez, ielem) =
+     $                 wmles_lobukhov(i_linear)
+                    Ri(ifacex, ifacey, ifacez, ielem) =
+     $                 wmles_ri(i_linear)
+                    q(ifacex, ifacey, ifacez, ielem) =
+     $                 wmles_q(i_linear)
+                    local_index(ifacex, ifacey, ifacez, ielem) =
+     $                 wmles_local_index(i_linear)
                   endif
 
                 end do
@@ -325,8 +346,10 @@ c
         enddo
       enddo
       call outpost(h, h, h, xm2, h, 'wmh')
-      call outpost(svx, svy, svz, xm2, svt, 'wmv')
+      call outpost(svx, local_index, svz, xm2, svt, 'wmv')
       call outpost(spx, spy, spz, xm2, xm1, 'wmp')
+      ! ustar, L, Ri, q
+      call outpost(ustar, L, Ri, xm2, q, 'wmq')
 
       end subroutine
 
