@@ -164,12 +164,12 @@
             l_lower = l_obukhov - fd_h
             if (wmles_forcing_type .eq. surface_temperature) then
               f=(rib - h/l_obukhov
-     $          *similarity_law_q_conv(l_obukhov, h, z0)
+     $          *similarity_law_q_conv(l_obukhov, h, z1)
      $          /similarity_law_u_conv(l_obukhov, h, z0)**2)
-              dfdl = (-h/l_upper*similarity_law_q_conv(l_upper, h, z0)
+              dfdl = (-h/l_upper*similarity_law_q_conv(l_upper, h, z1)
      $             /similarity_law_u_conv(l_upper, h, z0)**2)
               dfdl=dfdl + (h/l_lower
-     $             *similarity_law_q_conv(l_lower, h, z0)
+     $             *similarity_law_q_conv(l_lower, h, z1)
      $             /similarity_law_u_conv(l_lower, h, z0)**2)
               dfdl = dfdl/(2*fd_h)
             elseif (wmles_forcing_type .eq. surface_heat_flux) then
@@ -204,13 +204,24 @@
             l_old = l_obukhov
             count = count + 1
             if (wmles_forcing_type .eq. surface_temperature) then
+              if (ISTEP .gt. 373) then
+                write(*,*) ISTEP, i, "LOOP A, rib =", rib,"L =",
+     $            l_obukhov
+     $           ,"sim_q =",similarity_law_q_stable(l_obukhov, h, z1)
+     $           ,"sim_u =",similarity_law_u_stable(l_obukhov, h, z0)
+                endif
               f = rib - h/l_obukhov*
-     $              similarity_law_q_stable(l_obukhov, h, z0)/
+     $              similarity_law_q_stable(l_obukhov, h, z1)/
      $              similarity_law_u_stable(l_obukhov, h, z0)**2
-
+              if (ISTEP .gt. 373) then
+                write(*,*) ISTEP, i, "LOOP B, f =", f
+              endif
               dfdl = ((h*log(h/z0)*(2*a*h - b*h + l_obukhov*log(h/z0)))/
      $            (b*h + l_obukhov*log(h/z0))**3)
-
+              if (ISTEP .gt. 373) then
+                write(*,*) ISTEP, i, "LOOP C, dfdl =", dfdl
+                write(*,*) ISTEP, i, "LOOP D, count =", count
+              endif
             elseif (wmles_forcing_type .eq. surface_heat_flux) then
               write(*,*) "Not implemented yet!"
               call exitt
@@ -267,7 +278,7 @@
           ! compute the surface heat flux if the temperature is prescribed
           if (wmles_forcing_type .eq. surface_temperature) then
             q = kappa*utau*(ts - th)
-     $          /similarity_law_q_conv(l_obukhov, h, z0)
+     $          /similarity_law_q_conv(l_obukhov, h, z1)
           endif
         elseif (rib.gt.0.01) then ! stable
           ! compute u* with the new obukhov length
@@ -285,20 +296,22 @@
           ! compute the surface heat flux if the temperature is prescribed
           if (wmles_forcing_type .eq. surface_temperature) then
             q = kappa*utau*(ts - th)
-     $          /similarity_law_q_stable(l_obukhov, h, z0)
+     $          /similarity_law_q_stable(l_obukhov, h, z1)
 
             if (ISTEP .gt. 373) then
               if (abs(q) .gt. 1 .or. flag .eq. 1) then
                 write(*,*) ISTEP, i,"DEBUG I ","q =", q, "utau =",utau,
      $                "ts =", ts, "th =", th, "sim_q =",
-     $                similarity_law_q_stable(l_obukhov, h, z0)
+     $                similarity_law_q_stable(l_obukhov, h, z1)
               endif
             endif
           endif
         endif
 
       endif
-      write(*,*) " "
+      if (ISTEP .gt. 373) then
+        write(*,*) " "
+      endif
       wmles_ustar(i) = utau
       wmles_local_index(i) = i
       ! if (abs(q) .gt. 5) then
@@ -406,16 +419,16 @@ c     $                             + correction_u(z0, l_obukhov)
       end function
 
 !> @brief Compute the similarity law for heat
-      real function similarity_law_q_stable(l_obukhov, h, z0)
+      real function similarity_law_q_stable(l_obukhov, h, z1)
       implicit none
 
-      real l_obukhov, h, z0
+      real l_obukhov, h, z1
       real correction_q_stable
 !-----------------------------------------------------------------------
 
-      similarity_law_q_stable = log(h/z0)
+      similarity_law_q_stable = log(h/z1)
      $                          - correction_q_stable(h, l_obukhov)
-c     $                             + correction_q(z0, l_obukhov)
+c     $                             + correction_q(z1, l_obukhov)
 
 
       end function
