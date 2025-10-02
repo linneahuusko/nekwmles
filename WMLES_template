@@ -58,7 +58,8 @@ c     friction velocity
       real wmles_ustar(NMAX_BOUNDARY_POINTS)
 c     local index
       real wmles_local_index(NMAX_BOUNDARY_POINTS)
-
+c     number of Newton iterations for Obukhov length
+      real wmles_count(NMAX_BOUNDARY_POINTS)
 
 c     sampled solution
       real wmles_solh(NMAX_BOUNDARY_POINTS, 5)
@@ -126,4 +127,4 @@ c     Common blocks split by variable type
      $ wmles_solh, wmles_normals, wmles_tau, wmles_q, wmles_areas,
      $ wmles_theta0, wmles_lobukhov, wmles_ri, wmles_uh_average,
      $ wmles_th_average, wmles_ts_average, wmles_tau_field,
-     $ wmles_ustar, wmles_local_index
+     $ wmles_ustar, wmles_local_index, wmles_count

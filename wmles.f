@@ -268,6 +268,7 @@
       real Ri(lx1, ly1, lz1, nelt)
       real q(lx1, ly1, lz1, nelt)
       real local_index(lx1, ly1, lz1, nelt)
+      real local_count(lx1, ly1, lz1, nelt)
 
       integer ntot
       ! Loop ranges for traversing face nodes
@@ -338,6 +339,8 @@ c
      $                 wmles_q(i_linear)
                     local_index(ifacex, ifacey, ifacez, ielem) =
      $                 wmles_local_index(i_linear)
+                    local_count(ifacex, ifacey, ifacez, ielem) =
+     $                 wmles_count(i_linear)
                   endif
 
                 end do
@@ -348,7 +351,7 @@ c
 
         enddo
       enddo
-      call outpost(h, local_index, ts, xm2, h, 'wmh')
+      call outpost(h, local_index, ts, xm2, local_count, 'wmh')
       call outpost(svx, svy, svz, xm2, svt, 'wmv')
       call outpost(spx, spy, spz, xm2, xm1, 'wmp')
       ! ustar, L, Ri, q
