@@ -262,6 +262,7 @@
       real svy(lx1, ly1, lz1, nelt)
       real svz(lx1, ly1, lz1, nelt)
       real svt(lx1, ly1, lz1, nelt)
+      real ts(lx1, ly1, lz1, nelt)
       real ustar(lx1, ly1, lz1, nelt)
       real L(lx1, ly1, lz1, nelt)
       real Ri(lx1, ly1, lz1, nelt)
@@ -325,6 +326,8 @@ c
                   if (ifheat) then
                     svt(ifacex, ifacey, ifacez, ielem) =
      $                wmles_solh(i_linear, 4)
+                    ts(ifacex, ifacey, ifacez, ielem) =
+     $                wmles_surface_temp
                     ustar(ifacex, ifacey, ifacez, ielem) =
      $                 wmles_ustar(i_linear)
                     L(ifacex, ifacey, ifacez, ielem) =
@@ -345,8 +348,8 @@ c
 
         enddo
       enddo
-      call outpost(h, h, h, xm2, h, 'wmh')
-      call outpost(svx, local_index, svz, xm2, svt, 'wmv')
+      call outpost(h, local_index, ts, xm2, h, 'wmh')
+      call outpost(svx, svy, svz, xm2, svt, 'wmv')
       call outpost(spx, spy, spz, xm2, xm1, 'wmp')
       ! ustar, L, Ri, q
       call outpost(ustar, L, Ri, xm2, q, 'wmq')

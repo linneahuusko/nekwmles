@@ -260,6 +260,7 @@
         ! store the computed Obukhov length and Richardson number
         wmles_lobukhov(i) = l_obukhov
         wmles_ri(i) = rib
+        wmles_count(i) = count
 
     !     if (ISTEP .gt. 373) then
     !       if (abs(l_obukhov) .gt. 1000 .or. abs(rib) .gt. 1
