@@ -19,7 +19,7 @@
       real l_obukhov, l_upper, l_lower, l_backup, l_old
 
       ! the indices of the gll point
-      integer i, ix, iy, iz, ie, count, flag
+      integer i, ix, iy, iz, ie, count, max_count, flag
 
       ! sampled velocity
       real magvh
@@ -143,6 +143,7 @@
 
         l_old = 0
         count = 0
+        max_count = 1000
         if (abs(rib).lt.0.01) then ! neutral (use log law computed above)
           ! if (i.eq.1) then
           !   write(*,*) "Neutral", rib
@@ -153,7 +154,7 @@
           !   write(*,*) "Convective", rib
           ! endif
           do while ((abs(l_old - l_obukhov)/abs(l_obukhov) .gt. 1e-3)
-     $             .and. (count .lt. 20))
+     $             .and. (count .lt. max_count))
 
             l_old = l_obukhov
             count = count + 1
@@ -189,7 +190,7 @@
             ! consider N-R to be diverged
             if (abs(l_obukhov) .gt. 20000 .or.
      $        abs(l_obukhov) .lt. 1e-5) then
-              count = 20
+              count = max_count
             end if
           enddo
         else ! stable
@@ -199,7 +200,7 @@
           !   write(*,*) "Stable", rib
           ! endif
           do while ((abs(l_old - l_obukhov)/abs(l_obukhov) .gt. 1e-3)
-     $           .and. (count .lt. 20))
+     $           .and. (count .lt. max_count))
 
             l_old = l_obukhov
             count = count + 1
@@ -232,7 +233,7 @@
             ! This is an adhoc upper bound for L, at which point we
             ! consider N-R to be diverged
             if (abs(l_obukhov) > 20000 ) then
-              count = 20
+              count = max_count
             end if
           enddo
 
@@ -252,7 +253,7 @@
 
 
         ! if we did not converge
-        if (count .eq. 20) then
+        if (count .eq. max_count) then
           ! write(*,*) "Unconverged :("
           l_obukhov = l_backup
         endif
