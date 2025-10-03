@@ -242,7 +242,6 @@
       implicit none
 
       real z, l, xi, pi
-!-----------------------------------------------------------------------
 
       pi = 4*atan(1.0)
       xi = (1.0 - 16.0*z/l)**0.25
@@ -250,67 +249,75 @@
      $             2*atan(xi) + pi/2
 
       end function
-
+!-----------------------------------------------------------------------
 !> @brief Compute correction for the q log law in the convective case
       real function correction_q_conv(z, l)
       implicit none
 
       real z, l, xi, pi
-!-----------------------------------------------------------------------
 
       pi = 4*atan(1.0)
       xi = (1.0 - 16.0*z/l)**0.25
       correction_q_conv = 2*log(0.5*(1 + xi**2))
 
       end function
-
+!-----------------------------------------------------------------------
 !> @brief Compute the similarity law for velocity
       real function similarity_law_u_conv(l_obukhov, h, z0)
       implicit none
 
       real l_obukhov, h, z0
       real correction_u_conv
-!-----------------------------------------------------------------------
 
       similarity_law_u_conv = log(h/z0)
      $                        - correction_u_conv(h, l_obukhov)
      $                        + correction_u_conv(z0, l_obukhov)
 
       end function
-
+!-----------------------------------------------------------------------
 !> @brief Compute the similarity law for heat
       real function similarity_law_q_conv(l_obukhov, h, z1)
       implicit none
 
       real l_obukhov, h, z1
       real correction_q_conv
-!-----------------------------------------------------------------------
 
       similarity_law_q_conv = log(h/z1)
      $                        - correction_q_conv(h, l_obukhov)
      $                        + correction_q_conv(z1, l_obukhov)
 
       end function
-
+!-----------------------------------------------------------------------
 !--- Stable ------------------------------------------------------------
 !> @brief Compute correction for the u log law in the stable case
       real function correction_u_stable(z, l)
       implicit none
 
       real z, l
-!-----------------------------------------------------------------------
+      integer a, b, c, d
 
-      correction_u_stable = -5*z/l
+      a = 0.7
+      b = 0.75
+      c = 5
+      d = 0.35
+
+      correction_u_stable = a*z/l + b*(z/l-c/d)*exp(-d*z/l) + b*c/d
       end function
+!-----------------------------------------------------------------------
 
 !> @brief Compute correction for the u log law in the convective case
       real function correction_q_stable(z, l)
       implicit none
 
       real z, l
-!-----------------------------------------------------------------------
+      integer a, b, c, d
 
-      correction_q_stable = -5*z/l
+      a = 0.7
+      b = 0.75
+      c = 5
+      d = 0.35
+
+      correction_q_stable = a*z/l + b*(z/l-c/d)*exp(-d*z/l) + b*c/d
       end function
 
 !> @brief Compute the similarity law for velocity
@@ -319,25 +326,23 @@
 
       real l_obukhov, h, z0
       real correction_u_stable
-!-----------------------------------------------------------------------
 
       similarity_law_u_stable = log(h/z0)
      $                          - correction_u_stable(h, l_obukhov)
-c     $                             + correction_u(z0, l_obukhov)
+     $                             + correction_u(z0, l_obukhov)
 
       end function
-
+!-----------------------------------------------------------------------
 !> @brief Compute the similarity law for heat
       real function similarity_law_q_stable(l_obukhov, h, z1)
       implicit none
 
       real l_obukhov, h, z1
       real correction_q_stable
-!-----------------------------------------------------------------------
 
       similarity_law_q_stable = log(h/z1)
      $                          - correction_q_stable(h, l_obukhov)
-c     $                             + correction_q(z1, l_obukhov)
-
+     $                             + correction_q(z1, l_obukhov)
+!-----------------------------------------------------------------------
 
       end function
