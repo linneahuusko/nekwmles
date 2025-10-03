@@ -157,8 +157,6 @@
           end if
         enddo
       else ! stable
-        a = 5.0
-        b = 5.0
         ! if (i.eq.1) then
         !   write(*,*) "Stable", rib
         ! endif
@@ -167,12 +165,21 @@
 
           l_old = l_obukhov
           count = count + 1
+
+          ! for the central diff for evaluating dfdl
+          fd_h = 1e-3*l_obukhov
+          l_upper = l_obukhov + fd_h
+          l_lower = l_obukhov - fd_h
           if (wmles_forcing_type .eq. surface_temperature) then
             f = rib - h/l_obukhov*
      $              similarity_law_q_stable(l_obukhov, h, z1)/
      $              similarity_law_u_stable(l_obukhov, h, z0)**2
-            dfdl = ((h*log(h/z0)*(2*a*h - b*h + l_obukhov*log(h/z0)))/
-     $            (b*h + l_obukhov*log(h/z0))**3)
+            dfdl = (-h/l_upper*similarity_law_q_stable(l_upper, h, z1)
+     $             /similarity_law_u_stable(l_upper, h, z0)**2)
+            dfdl=dfdl + (h/l_lower
+     $             *similarity_law_q_stable(l_lower, h, z1)
+     $             /similarity_law_u_stable(l_lower, h, z0)**2)
+            dfdl = dfdl/(2*fd_h)
           elseif (wmles_forcing_type .eq. surface_heat_flux) then
             write(*,*) "Not implemented yet!"
             call exitt
