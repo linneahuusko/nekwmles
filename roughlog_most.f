@@ -78,13 +78,7 @@
 
       ! Get uncorrected utau for a first guess other wise from last
       ! timestep (only horizontal components)
-      if (ISTEP .lt. 3) then
-        utau = wmles_tau(i, 1)**2 +
-     $         wmles_tau(i, 3)**2
-        utau = sqrt(sqrt(utau))
-      else
-        utau = magvh*kappa/log(h/z0)
-      end if
+      utau = magvh*kappa/log(h/z0)
 
       if (wmles_forcing_type .eq. surface_temperature) then
         q = kappa*utau*(ts - th)/log(h/z1)
@@ -95,140 +89,138 @@
           stop
       endif
 
-      if (ISTEP .gt. 3) then
-        if (wmles_forcing_type .eq. surface_temperature) then
-          q = kappa*utau*(ts - th)/log(h/z1)
-          rib = g*h/th*(th - ts)/magvh**2
-        elseif (wmles_forcing_type .eq. surface_heat_flux) then
-          q = wmles_q(i)
-          rib = -g*h/th*q/(magvh**3*kappa**2)
-        endif
+      if (wmles_forcing_type .eq. surface_temperature) then
+        q = kappa*utau*(ts - th)/log(h/z1)
+        rib = g*h/th*(th - ts)/magvh**2
+      elseif (wmles_forcing_type .eq. surface_heat_flux) then
+        q = wmles_q(i)
+        rib = -g*h/th*q/(magvh**3*kappa**2)
+      endif
 
-        ! Obukhov l based on the previous-step utau
-        l_obukhov = -(wmles_theta0*utau**3)/(kappa*g*q)
-        wmles_lobukhov(i) = l_obukhov
+      ! Obukhov l based on the previous-step utau
+      l_obukhov = -(wmles_theta0*utau**3)/(kappa*g*q)
+      wmles_lobukhov(i) = l_obukhov
 
-        ! In case the iteration diverges we will just use this
-        l_backup = l_obukhov
+      ! In case the iteration diverges we will just use this
+      l_backup = l_obukhov
 
-        l_old = 0
-        count = 0
-        max_count = 1000
-        if (abs(rib).lt.0.01) then ! neutral (use log law computed above)
-          ! if (i.eq.1) then
-          !   write(*,*) "Neutral", rib
-          ! endif
-          l_obukhov = 0
-        elseif (rib.lt.-0.01) then ! convective
-          ! if (i.eq.1) then
-          !   write(*,*) "Convective", rib
-          ! endif
-          do while ((abs(l_old - l_obukhov)/abs(l_obukhov) .gt. 1e-3)
+      l_old = 0
+      count = 0
+      max_count = 1000
+      if (abs(rib).lt.0.01) then ! neutral (use log law computed above)
+        ! if (i.eq.1) then
+        !   write(*,*) "Neutral", rib
+        ! endif
+        l_obukhov = 0
+      elseif (rib.lt.-0.01) then ! convective
+        ! if (i.eq.1) then
+        !   write(*,*) "Convective", rib
+        ! endif
+        do while ((abs(l_old - l_obukhov)/abs(l_obukhov) .gt. 1e-3)
      $             .and. (count .lt. max_count))
 
-            l_old = l_obukhov
-            count = count + 1
+          l_old = l_obukhov
+          count = count + 1
 
-            ! for the central diff for evaluating dfdl
-            fd_h = 1e-3*l_obukhov
-            l_upper = l_obukhov + fd_h
-            l_lower = l_obukhov - fd_h
-            if (wmles_forcing_type .eq. surface_temperature) then
-              f=(rib - h/l_obukhov
+          ! for the central diff for evaluating dfdl
+          fd_h = 1e-3*l_obukhov
+          l_upper = l_obukhov + fd_h
+          l_lower = l_obukhov - fd_h
+          if (wmles_forcing_type .eq. surface_temperature) then
+            f=(rib - h/l_obukhov
      $          *similarity_law_q_conv(l_obukhov, h, z1)
      $          /similarity_law_u_conv(l_obukhov, h, z0)**2)
-              dfdl = (-h/l_upper*similarity_law_q_conv(l_upper, h, z1)
+            dfdl = (-h/l_upper*similarity_law_q_conv(l_upper, h, z1)
      $             /similarity_law_u_conv(l_upper, h, z0)**2)
-              dfdl=dfdl + (h/l_lower
+            dfdl=dfdl + (h/l_lower
      $             *similarity_law_q_conv(l_lower, h, z1)
      $             /similarity_law_u_conv(l_lower, h, z0)**2)
-              dfdl = dfdl/(2*fd_h)
-            elseif (wmles_forcing_type .eq. surface_heat_flux) then
-              f = (rib - h/l_obukhov/
+            dfdl = dfdl/(2*fd_h)
+          elseif (wmles_forcing_type .eq. surface_heat_flux) then
+            f = (rib - h/l_obukhov/
      $        similarity_law_u_conv(l_obukhov, h, z0)**3)
 
-              dfdl = (-h/l_upper
+            dfdl = (-h/l_upper
      $               /similarity_law_u_conv(l_upper, h, z0)**3)
-              dfdl = dfdl + (h/l_lower/
+            dfdl = dfdl + (h/l_lower/
      $        similarity_law_u_conv(l_lower, h, z0)**3)
-              dfdl = dfdl/(2*fd_h)
-            endif
+            dfdl = dfdl/(2*fd_h)
+          endif
 
-            l_obukhov = l_obukhov - f/dfdl
+          l_obukhov = l_obukhov - f/dfdl
 
-            ! This is an adhoc upper bound for L, at which point we
-            ! consider N-R to be diverged
-            if (abs(l_obukhov) .gt. 20000 .or.
+          ! This is an adhoc upper bound for L, at which point we
+          ! consider N-R to be diverged
+          if (abs(l_obukhov) .gt. 20000 .or.
      $        abs(l_obukhov) .lt. 1e-5) then
-              count = max_count
-            end if
-          enddo
-        else ! stable
-          a = 5.0
-          b = 5.0
-          ! if (i.eq.1) then
-          !   write(*,*) "Stable", rib
-          ! endif
-          do while ((abs(l_old - l_obukhov)/abs(l_obukhov) .gt. 1e-3)
+            count = max_count
+          end if
+        enddo
+      else ! stable
+        a = 5.0
+        b = 5.0
+        ! if (i.eq.1) then
+        !   write(*,*) "Stable", rib
+        ! endif
+        do while ((abs(l_old - l_obukhov)/abs(l_obukhov) .gt. 1e-3)
      $           .and. (count .lt. max_count))
 
-            l_old = l_obukhov
-            count = count + 1
-            if (wmles_forcing_type .eq. surface_temperature) then
-              f = rib - h/l_obukhov*
+          l_old = l_obukhov
+          count = count + 1
+          if (wmles_forcing_type .eq. surface_temperature) then
+            f = rib - h/l_obukhov*
      $              similarity_law_q_stable(l_obukhov, h, z1)/
      $              similarity_law_u_stable(l_obukhov, h, z0)**2
-              dfdl = ((h*log(h/z0)*(2*a*h - b*h + l_obukhov*log(h/z0)))/
+            dfdl = ((h*log(h/z0)*(2*a*h - b*h + l_obukhov*log(h/z0)))/
      $            (b*h + l_obukhov*log(h/z0))**3)
-            elseif (wmles_forcing_type .eq. surface_heat_flux) then
-              write(*,*) "Not implemented yet!"
-              call exitt
-            endif
-            l_obukhov = l_obukhov - f/dfdl
-
-
-            ! This is an adhoc upper bound for L, at which point we
-            ! consider N-R to be diverged
-            if (abs(l_obukhov) > 20000 ) then
-              count = max_count
-            end if
-          enddo
-
-        endif
-
-
-        ! if we did not converge
-        if (count .eq. max_count) then
-          ! write(*,*) "Unconverged :("
-          l_obukhov = l_backup
-        endif
-
-        ! store the computed Obukhov length and Richardson number
-        wmles_lobukhov(i) = l_obukhov
-        wmles_ri(i) = rib
-        wmles_count(i) = count
-
-        ! if the case is neutral the previously calculated
-        ! values will be used without correction
-        if (rib.lt.-0.01) then ! convective
-          ! compute u* with the new obukhov length
-          utau = kappa*magvh/similarity_law_u_conv(l_obukhov, h, z0)
-
-          ! compute the surface heat flux if the temperature is prescribed
-          if (wmles_forcing_type .eq. surface_temperature) then
-            q = kappa*utau*(ts - th)
-     $          /similarity_law_q_conv(l_obukhov, h, z1)
+          elseif (wmles_forcing_type .eq. surface_heat_flux) then
+            write(*,*) "Not implemented yet!"
+            call exitt
           endif
-        elseif (rib.gt.0.01) then ! stable
-          ! compute u* with the new obukhov length
-          utau = kappa*magvh/similarity_law_u_stable(l_obukhov, h, z0)
+          l_obukhov = l_obukhov - f/dfdl
 
-          ! compute the surface heat flux if the temperature is prescribed
-          if (wmles_forcing_type .eq. surface_temperature) then
-            q = kappa*utau*(ts - th)
+
+          ! This is an adhoc upper bound for L, at which point we
+          ! consider N-R to be diverged
+          if (abs(l_obukhov) > 20000 ) then
+            count = max_count
+          end if
+        enddo
+
+      endif
+
+
+      ! if we did not converge
+      if (count .eq. max_count) then
+        ! write(*,*) "Unconverged :("
+        l_obukhov = l_backup
+      endif
+
+      ! store the computed Obukhov length and Richardson number
+      wmles_lobukhov(i) = l_obukhov
+      wmles_ri(i) = rib
+      wmles_count(i) = count
+
+      ! if the case is neutral the previously calculated
+      ! values will be used without correction
+      if (rib.lt.-0.01) then ! convective
+        ! compute u* with the new obukhov length
+        utau = kappa*magvh/similarity_law_u_conv(l_obukhov, h, z0)
+
+        ! compute the surface heat flux if the temperature is prescribed
+        if (wmles_forcing_type .eq. surface_temperature) then
+          q = kappa*utau*(ts - th)
+     $          /similarity_law_q_conv(l_obukhov, h, z1)
+        endif
+      elseif (rib.gt.0.01) then ! stable
+        ! compute u* with the new obukhov length
+        utau = kappa*magvh/similarity_law_u_stable(l_obukhov, h, z0)
+
+        ! compute the surface heat flux if the temperature is prescribed
+        if (wmles_forcing_type .eq. surface_temperature) then
+          q = kappa*utau*(ts - th)
      $          /similarity_law_q_stable(l_obukhov, h, z1)
 
-          endif
         endif
 
       endif
