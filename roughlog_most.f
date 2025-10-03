@@ -19,7 +19,7 @@
       real l_obukhov, l_upper, l_lower, l_backup, l_old
 
       ! the indices of the gll point
-      integer i, ix, iy, iz, ie, count, max_count, flag
+      integer i, ix, iy, iz, ie, count, max_count
 
       ! sampled velocity
       real magvh
@@ -49,7 +49,6 @@
       logical ltmp
       character*20 ctmp
 !-----------------------------------------------------------------------
-      flag = 1
 
       ! assign kappa and B and z0
       call rprm_rp_get(itmp,kappa,ltmp,ctmp,wmles_logkappa_id,rpar_real)
@@ -87,13 +86,6 @@
         utau = magvh*kappa/log(h/z0)
       end if
 
-      ! if (ISTEP .gt. 373) then
-      !   if (abs(utau) .gt. 1 .or. flag .eq. 1) then
-      !     write(*,*) ISTEP, i, "DEBUG A ", "utau =", utau
-      !     flag = 1
-      !   endif
-      ! endif
-
       if (wmles_forcing_type .eq. surface_temperature) then
         q = kappa*utau*(ts - th)/log(h/z1)
       elseif (wmles_forcing_type .eq. surface_heat_flux) then
@@ -102,14 +94,6 @@
           write(*,*) "No surface forcing type set!"
           stop
       endif
-
-      ! if (ISTEP .gt. 373) then
-      !   if (abs(q) .gt. 1 .or. flag .eq. 1) then
-      !     write(*,*) ISTEP, i, "DEBUG B ", "q =", q
-      !     flag = 1
-      !   endif
-      ! endif
-
 
       if (ISTEP .gt. 3) then
         if (wmles_forcing_type .eq. surface_temperature) then
@@ -120,23 +104,9 @@
           rib = -g*h/th*q/(magvh**3*kappa**2)
         endif
 
-        ! if (ISTEP .gt. 373) then
-        !   if (abs(q) .gt. 1 .or. abs(rib) .gt. 1 .or. flag .eq. 1) then
-        !     write(*,*) ISTEP, i, "DEBUG C ", "q =", q, "rib =", rib
-        !     flag = 1
-        !   endif
-        ! endif
-
         ! Obukhov l based on the previous-step utau
         l_obukhov = -(wmles_theta0*utau**3)/(kappa*g*q)
         wmles_lobukhov(i) = l_obukhov
-
-        ! if (ISTEP .gt. 373) then
-        !   if (abs(l_obukhov) .gt. 1000 .or. flag .eq. 1) then
-        !     write(*,*) ISTEP, i, "DEBUG D ", "L =", l_obukhov
-        !     flag = 1
-        !   endif
-        ! endif
 
         ! In case the iteration diverges we will just use this
         l_backup = l_obukhov
@@ -205,24 +175,11 @@
             l_old = l_obukhov
             count = count + 1
             if (wmles_forcing_type .eq. surface_temperature) then
-    !           if (ISTEP .gt. 373) then
-    !             write(*,*) ISTEP, i, "LOOP A, rib =", rib,"L =",
-    !  $            l_obukhov
-    !  $           ,"sim_q =",similarity_law_q_stable(l_obukhov, h, z1)
-    !  $           ,"sim_u =",similarity_law_u_stable(l_obukhov, h, z0)
-    !             endif
               f = rib - h/l_obukhov*
      $              similarity_law_q_stable(l_obukhov, h, z1)/
      $              similarity_law_u_stable(l_obukhov, h, z0)**2
-              ! if (ISTEP .gt. 373) then
-              !   write(*,*) ISTEP, i, "LOOP B, f =", f
-              ! endif
               dfdl = ((h*log(h/z0)*(2*a*h - b*h + l_obukhov*log(h/z0)))/
      $            (b*h + l_obukhov*log(h/z0))**3)
-              ! if (ISTEP .gt. 373) then
-              !   write(*,*) ISTEP, i, "LOOP C, dfdl =", dfdl
-              !   write(*,*) ISTEP, i, "LOOP D, count =", count
-              ! endif
             elseif (wmles_forcing_type .eq. surface_heat_flux) then
               write(*,*) "Not implemented yet!"
               call exitt
@@ -237,18 +194,6 @@
             end if
           enddo
 
-        ! if (ISTEP .gt. 373) then
-        !   if (flag .eq. 1) then
-        !     write(*,*) ISTEP, i, "DEBUG E ", "f =",f,"dfdl =",dfdl
-        !     flag = 1
-        !   endif
-        ! endif
-        ! if (ISTEP .gt. 373) then
-        !   if (abs(l_obukhov) .gt. 1000 .or. flag .eq. 1) then
-        !     write(*,*) ISTEP, i, "DEBUG F ", "L =", l_obukhov
-        !     flag = 1
-        !   endif
-        ! endif
         endif
 
 
@@ -262,14 +207,6 @@
         wmles_lobukhov(i) = l_obukhov
         wmles_ri(i) = rib
         wmles_count(i) = count
-
-    !     if (ISTEP .gt. 373) then
-    !       if (abs(l_obukhov) .gt. 1000 .or. abs(rib) .gt. 1
-    !  $             .or. flag.eq.1) then
-    !         write(*,*) ISTEP, i,"DEBUG G ","L =",l_obukhov,"rib =",rib
-    !         flag = 1
-    !       endif
-    !     endif
 
         ! if the case is neutral the previously calculated
         ! values will be used without correction
@@ -286,40 +223,18 @@
           ! compute u* with the new obukhov length
           utau = kappa*magvh/similarity_law_u_stable(l_obukhov, h, z0)
 
-    !       if (ISTEP .gt. 373) then
-    !         if (abs(utau) .gt. 1 .or. flag .eq. 1) then
-    !           write(*,*) ISTEP, i,"DEBUG H ","utau =", utau,
-    !  $         "magvh =", magvh, "sim_u =",
-    !  $          similarity_law_u_stable(l_obukhov, h, z0)
-    !           flag = 1
-    !         endif
-    !       endif
-
           ! compute the surface heat flux if the temperature is prescribed
           if (wmles_forcing_type .eq. surface_temperature) then
             q = kappa*utau*(ts - th)
      $          /similarity_law_q_stable(l_obukhov, h, z1)
 
-    !         if (ISTEP .gt. 373) then
-    !           if (abs(q) .gt. 1 .or. flag .eq. 1) then
-    !             write(*,*) ISTEP, i,"DEBUG I ","q =", q, "utau =",utau,
-    !  $                "ts =", ts, "th =", th, "sim_q =",
-    !  $                similarity_law_q_stable(l_obukhov, h, z1)
-    !           endif
-    !         endif
           endif
         endif
 
       endif
-      ! if (ISTEP .gt. 373) then
-      !   write(*,*) " "
-      ! endif
+
       wmles_ustar(i) = utau
       wmles_local_index(i) = i
-      ! if (abs(q) .gt. 5) then
-      !   write(*,*) "DEBUG q =", q, "ustar = ", utau,
-      ! endif
-      ! write(*,*) "ustar =", wmles_ustar(i)
 
       ! Assign tau proportional to the velocity magnitudes at
       ! the sampling point
