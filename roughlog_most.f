@@ -336,7 +336,7 @@
 
       similarity_law_u_stable = log(h/z0)
      $                          - correction_u_stable(h, l_obukhov)
-     $                             + correction_u(z0, l_obukhov)
+     $                          + correction_u_stable(z0, l_obukhov)
 
       end function
 !-----------------------------------------------------------------------
@@ -349,7 +349,7 @@
 
       similarity_law_q_stable = log(h/z1)
      $                          - correction_q_stable(h, l_obukhov)
-     $                             + correction_q(z1, l_obukhov)
+     $                          + correction_q_stable(z1, l_obukhov)
 !-----------------------------------------------------------------------
 
       end function
