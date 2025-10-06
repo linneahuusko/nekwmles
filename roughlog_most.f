@@ -35,11 +35,6 @@
       ! log law parameters
       real kappa, z0, z1
 
-      ! parameters in front of the correction functions for heat and
-      ! momentum.
-      real a, b
-
-
       ! similarity law for velocity and heat
       real similarity_law_u_conv, similarity_law_q_conv
       real similarity_law_u_stable, similarity_law_q_stable
@@ -114,11 +109,15 @@
         l_old = 0
         count = 0
         max_count = 1000
+
+! ===== Neutral =======================================================
         if (abs(rib).lt.0.01) then ! neutral (use log law computed above)
           ! if (i.eq.1) then
           !   write(*,*) "Neutral", rib
           ! endif
           l_obukhov = 0
+
+! ===== Convective ====================================================
         elseif (rib.lt.-0.01) then ! convective
           ! if (i.eq.1) then
           !   write(*,*) "Convective", rib
@@ -163,6 +162,8 @@
               count = max_count
             end if
           enddo
+
+! ===== Stable ========================================================
         else ! stable
           ! if (i.eq.1) then
           !   write(*,*) "Stable", rib
@@ -309,7 +310,7 @@
       implicit none
 
       real z, l
-      integer a, b, c, d
+      real a, b, c, d
 
       a = 0.7
       b = 0.75
@@ -325,7 +326,7 @@
       implicit none
 
       real z, l
-      integer a, b, c, d
+      real a, b, c, d
 
       a = 0.7
       b = 0.75
