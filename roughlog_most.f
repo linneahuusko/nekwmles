@@ -312,12 +312,12 @@
       real z, l
       real a, b, c, d
 
-      a = 0.7
-      b = 0.75
+      a = 1.0
+      b = 0.6666666
       c = 5
       d = 0.35
 
-      correction_u_stable = a*z/l + b*(z/l-c/d)*exp(-d*z/l) + b*c/d
+      correction_u_stable = - a*z/l - b*(z/l-c/d)*exp(-d*z/l) - b*c/d
       end function
 !-----------------------------------------------------------------------
 
@@ -328,12 +328,14 @@
       real z, l
       real a, b, c, d
 
-      a = 0.7
-      b = 0.75
+      a = 1.0
+      b = 0.6666666
       c = 5
       d = 0.35
 
-      correction_q_stable = a*z/l + b*(z/l-c/d)*exp(-d*z/l) + b*c/d
+      correction_q_stable = -b * (z/l -c/d)*exp(-d*z/l) -
+     $                      (1.0 + 0.6666666 * a * z/l)**1.5
+     $                      - b*c/d + 1.0
       end function
 
 !> @brief Compute the similarity law for velocity
