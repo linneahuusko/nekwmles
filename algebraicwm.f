@@ -37,14 +37,6 @@
         wmles_tau_field(ix, iy, iz, ie, 2) = wmles_tau(i_linear, 2)
         wmles_tau_field(ix, iy, iz, ie, 3) = wmles_tau(i_linear, 3)
 
-        if (ifheat) then
-          if (wmles_surface_temp.gt.0.0) then
-            write(*,*) "Computing q based on surface temperature"
-          else
-            write(*,*) "Using prescribed q"
-          endif
-          call wmles_set_heat_flux(i_linear)
-        end if
       enddo
 
       ! If we use viscosity to impose the shear stress, then
