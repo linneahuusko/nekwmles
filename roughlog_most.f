@@ -108,7 +108,7 @@
 
         l_old = 0
         count = 0
-        max_count = 1000
+        max_count = 20
 
 ! ===== Neutral =======================================================
         if (abs(rib).lt.0.01) then ! neutral (use log law computed above)
