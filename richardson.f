@@ -38,7 +38,7 @@
       ! similarity law for velocity and heat
       real similarity_law_u_conv, similarity_law_q_conv
       real tau, heat_flux !similarity_law_u_stable, similarity_law_q_stable
-      real l, N, zt
+      real l, N
       real fcor, C_f, C_N
 
       ! dummy variables for retrieving parameters
@@ -176,8 +176,7 @@
           ! endif
 
           N = sqrt(g/wmles_theta0 * (th-ts)/h)
-          zt = h/2
-          l = 1/(1/(0.4*zt)
+          l = 1/(1/(0.4*h)
      $     + fcor/(C_f*utau)
      $     + N/(C_N*utau))
 
@@ -300,27 +299,23 @@
       real function tau(u, v, ri, h, z0, l)
       implicit none
 
-      real u, v, ri, h, z0, zt, l
+      real u, v, ri, h, z0, l
       real f_tau
 
-      zt = 0.5 * h
-
-      tau = (u**2 + v**2)/(zt**2 * log(h/z0)**2)
-     $ * f_tau(ri)/f_tau(0) * l**2
+      tau = (u**2 + v**2)/(log(h/z0)**2)
+     $ * f_tau(ri)/f_tau(0) * (l/h)**2
 
       end function
 !-----------------------------------------------------------------------
       real function heat_flux(theta2,theta1,u,v,ri,h,z0,z1,pr,l)
       implicit none
 
-      real theta1, theta2, u, v, ri, h, z0, z1, pr, l, zt
+      real theta1, theta2, u, v, ri, h, z0, z1, pr, l
       real f_theta
       real tau
 
-      zt = 0.5 * h
-
-      heat_flux = (theta2 - theta1)/(zt * log(h/z1))
-     $ * f_theta(ri)/abs(f_theta(0)) * l
+      heat_flux = (theta2 - theta1)/(log(h/z1))
+     $ * f_theta(ri)/abs(f_theta(0)) * (l/h)
      $ * tau(u, v, ri, h, z0, l)**0.5/pr
 
       end function
