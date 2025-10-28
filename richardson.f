@@ -182,8 +182,7 @@
 
           utau = (tau(wmles_solh(i, 1), wmles_solh(i, 3),
      $          rib, h, z0, l))**0.5
-          q = heat_flux(th, ts, wmles_solh(i, 1), wmles_solh(i, 3),
-     $        rib, h, z0, z1, 1.0, l)
+          q = heat_flux(th, ts, rib, h, z1, 1.0, l, utau)
 
         endif
 
@@ -307,15 +306,14 @@
 
       end function
 !-----------------------------------------------------------------------
-      real function heat_flux(theta2,theta1,u,v,ri,h,z0,z1,pr,l)
+      real function heat_flux(theta2, theta1, ri, h, z1, pr, l, utau)
       implicit none
 
-      real theta1, theta2, u, v, ri, h, z0, z1, pr, l
+      real theta1, theta2, ri, h, z1, pr, l, utau
       real f_theta
-      real tau
 
       heat_flux = (theta2 - theta1)/(log(h/z1))
      $ * f_theta(ri)/abs(f_theta(0)) * (l/h)
-     $ * tau(u, v, ri, h, z0, l)**0.5/pr
+     $ * utau/pr
 
       end function
