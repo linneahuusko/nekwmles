@@ -38,11 +38,17 @@
       ! similarity law for velocity and heat
       real similarity_law_u_conv, similarity_law_q_conv
       real tau, heat_flux !similarity_law_u_stable, similarity_law_q_stable
+      real l, N, zt
+      real fcor, C_f, C_N
 
       ! dummy variables for retrieving parameters
       integer itmp
       logical ltmp
       character*20 ctmp
+
+      parameter(fcor = 1.39e-4)
+      parameter(C_f = 0.185)
+      parameter(C_N = 2.0)
 !-----------------------------------------------------------------------
 
       ! assign kappa and B and z0
@@ -168,10 +174,17 @@
           ! if (i.eq.1) then
           !   write(*,*) "Stable", rib
           ! endif
+
+          N = sqrt(g/wmles_theta0 * (th-ts)/h)
+          zt = h/2
+          l = 1/(1/(0.4*zt)
+     $     + fcor/(C_f*utau)
+     $     + N/(C_N*utau))
+
           utau = (tau(wmles_solh(i, 1), wmles_solh(i, 3),
-     $          rib, h, z0))**0.5
+     $          rib, h, z0, l))**0.5
           q = heat_flux(th, ts, wmles_solh(i, 1), wmles_solh(i, 3),
-     $        rib, h, z0, z1, 1.0)
+     $        rib, h, z0, z1, 1.0, l)
 
         endif
 
@@ -284,21 +297,20 @@
 
       end function
 !-----------------------------------------------------------------------
-      real function tau(u, v, ri, h, z0)
+      real function tau(u, v, ri, h, z0, l)
       implicit none
 
       real u, v, ri, h, z0, zt, l
       real f_tau
 
       zt = 0.5 * h
-      l = zt * 0.4
 
       tau = (u**2 + v**2)/(zt**2 * log(h/z0)**2)
      $ * f_tau(ri)/f_tau(0) * l**2
 
       end function
 !-----------------------------------------------------------------------
-      real function heat_flux(theta2, theta1, u, v, ri, h, z0, z1, pr)
+      real function heat_flux(theta2,theta1,u,v,ri,h,z0,z1,pr,l)
       implicit none
 
       real theta1, theta2, u, v, ri, h, z0, z1, pr, l, zt
@@ -306,10 +318,9 @@
       real tau
 
       zt = 0.5 * h
-      l = 0.4 * zt
 
       heat_flux = (theta2 - theta1)/(zt * log(h/z1))
      $ * f_theta(ri)/abs(f_theta(0)) * l
-     $ * tau(u, v, ri, h, z0)**0.5/pr
+     $ * tau(u, v, ri, h, z0, l)**0.5/pr
 
       end function
