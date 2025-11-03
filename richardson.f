@@ -179,24 +179,18 @@
           l = 1/(1/(0.4*h)
      $     + fcor/(C_f*utau)
      $     + N/(C_N*utau))
-
+          ! l = 0.4 * h
           utau = (tau(wmles_solh(i, 1), wmles_solh(i, 3),
      $          rib, h, z0, l))**0.5
           q = heat_flux(th, ts, rib, h, z1, 1.0, l, utau)
 
         endif
 
-
-        ! if we did not converge
-        if (count .eq. max_count) then
-          ! write(*,*) "Unconverged :("
-          l_obukhov = l_backup
-        endif
-
         ! store the computed Obukhov length and Richardson number
         wmles_lobukhov(i) = l_obukhov
         wmles_ri(i) = rib
-        wmles_count(i) = count
+        wmles_count(i) = l
+        wmles_local_index(i) = N
 
         ! if the case is neutral the previously calculated
         ! values will be used without correction
@@ -214,7 +208,6 @@
       endif
 
       wmles_ustar(i) = utau
-      wmles_local_index(i) = i
 
       ! Assign tau proportional to the velocity magnitudes at
       ! the sampling point
