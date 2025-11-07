@@ -36,7 +36,7 @@
       real kappa, z0, z1
 
       ! similarity law for velocity and heat
-      real similarity_law_u_conv, similarity_law_q_conv
+      real tau_conv, heat_flux_conv
       real tau, heat_flux !similarity_law_u_stable, similarity_law_q_stable
       real l, N
       real fcor, C_f, C_N
@@ -129,45 +129,12 @@
           ! if (i.eq.1) then
           !   write(*,*) "Convective", rib
           ! endif
-          do while ((abs(l_old - l_obukhov)/abs(l_obukhov) .gt. 1e-3)
-     $             .and. (count .lt. max_count))
-            l_old = l_obukhov
-            count = count + 1
 
-            ! for the central diff for evaluating dfdl
-            fd_h = 1e-3*l_obukhov
-            l_upper = l_obukhov + fd_h
-            l_lower = l_obukhov - fd_h
-            if (wmles_forcing_type .eq. surface_temperature) then
-              f=(rib - h/l_obukhov
-     $          *similarity_law_q_conv(l_obukhov, h, z1)
-     $          /similarity_law_u_conv(l_obukhov, h, z0)**2)
-              dfdl = (-h/l_upper*similarity_law_q_conv(l_upper, h, z1)
-     $             /similarity_law_u_conv(l_upper, h, z0)**2)
-              dfdl=dfdl + (h/l_lower
-     $             *similarity_law_q_conv(l_lower, h, z1)
-     $             /similarity_law_u_conv(l_lower, h, z0)**2)
-              dfdl = dfdl/(2*fd_h)
-            elseif (wmles_forcing_type .eq. surface_heat_flux) then
-              f = (rib - h/l_obukhov/
-     $        similarity_law_u_conv(l_obukhov, h, z0)**3)
+          utau = (tau_conv(wmles_solh(i, 1), wmles_solh(i, 3),
+     $            rib, h, z0))**0.5
 
-              dfdl = (-h/l_upper
-     $               /similarity_law_u_conv(l_upper, h, z0)**3)
-              dfdl = dfdl + (h/l_lower/
-     $        similarity_law_u_conv(l_lower, h, z0)**3)
-              dfdl = dfdl/(2*fd_h)
-            endif
-
-            l_obukhov = l_obukhov - f/dfdl
-
-            ! This is an adhoc upper bound for L, at which point we
-            ! consider N-R to be diverged
-            if (abs(l_obukhov) .gt. 20000 .or.
-     $        abs(l_obukhov) .lt. 1e-5) then
-              count = max_count
-            end if
-          enddo
+          q = heat_flux_conv(th, ts, wmles_solh(i, 1),
+     $        wmles_solh(i, 3), rib, h, z1)
 
 ! ===== Stable ========================================================
         else ! stable
@@ -176,12 +143,12 @@
           ! endif
 
           N = sqrt(g/wmles_theta0 * (th-ts)/h)
-          l = 1/(1/(0.4*h)
-     $     + fcor/(C_f*utau)
-     $     + N/(C_N*utau))
-          ! l = 0.4 * h
+    !       l = 1/(1/(0.4*h)
+    !  $     + fcor/(C_f*utau)
+    !  $     + N/(C_N*utau))
+          l = 0.4 * h
           utau = (tau(wmles_solh(i, 1), wmles_solh(i, 3),
-     $          rib, h, z0, l))**0.5
+     $            rib, h, z0, l))**0.5
           q = heat_flux(th, ts, rib, h, z1, 1.0, l, utau)
 
         endif
@@ -191,19 +158,6 @@
         wmles_ri(i) = rib
         wmles_count(i) = l
         wmles_local_index(i) = N
-
-        ! if the case is neutral the previously calculated
-        ! values will be used without correction
-        if (rib.lt.-ri_limit) then ! convective
-          ! compute u* with the new obukhov length
-          utau = kappa*magvh/similarity_law_u_conv(l_obukhov, h, z0)
-
-          ! compute the surface heat flux if the temperature is prescribed
-          if (wmles_forcing_type .eq. surface_temperature) then
-            q = kappa*utau*(ts - th)
-     $          /similarity_law_q_conv(l_obukhov, h, z1)
-          endif
-        endif
 
       endif
 
@@ -217,59 +171,45 @@
       wmles_q(i) = q
       end
 
-!--- convective --------------------------------------------------------
-!> @brief Compute correction for the u log law in the convective case
-      real function correction_u_conv(z, l)
+!--- Convective --------------------------------------------------------
+!    Correction functions based on Louis 1979
+      real function tau_conv(u, v, ri, h, z0)
       implicit none
 
-      real z, l, xi, pi
+      real a, b, c, F_m
+      real u, v, ri, h, z0
 
-      pi = 4*atan(1.0)
-      xi = (1.0 - 16.0*z/l)**0.25
-      correction_u_conv = 2*log(0.5*(1 + xi)) + log(0.5*(1 + xi**2)) -
-     $             2*atan(xi) + pi/2
+      a = 0.4 / log(h/z0)
+      b = 2
+      c = 7.4 * a**2 * b * (h/z0)**0.5
+
+      F_m = 1 - 2*ri / (1 + c * abs(ri)**0.5)
+
+      tau_conv = a**2 * (u**2 + v**2) * F_m
 
       end function
+
 !-----------------------------------------------------------------------
-!> @brief Compute correction for the q log law in the convective case
-      real function correction_q_conv(z, l)
+      real function heat_flux_conv(theta2, theta1, u, v, ri, h, z1)
       implicit none
 
-      real z, l, xi, pi
+      real a, b, c, F_h
+      real theta2, theta1, u, v, ri, h, z1
 
-      pi = 4*atan(1.0)
-      xi = (1.0 - 16.0*z/l)**0.25
-      correction_q_conv = 2*log(0.5*(1 + xi**2))
+      a = 0.4 / log(h/z1)
+      b = 2
+      c = 5.3 * a**2 * b * (h/z1)**0.5
 
-      end function
-!-----------------------------------------------------------------------
-!> @brief Compute the similarity law for velocity
-      real function similarity_law_u_conv(l_obukhov, h, z0)
-      implicit none
+      F_h = 1 - 2*ri / (1 + c * abs(ri)**0.5)
 
-      real l_obukhov, h, z0
-      real correction_u_conv
-
-      similarity_law_u_conv = log(h/z0)
-     $                        - correction_u_conv(h, l_obukhov)
-     $                        + correction_u_conv(z0, l_obukhov)
+      heat_flux_conv = - a**2 / 0.74 * (u**2 + v**2)**0.5 *
+     $ (theta2 - theta1) * F_h
 
       end function
-!-----------------------------------------------------------------------
-!> @brief Compute the similarity law for heat
-      real function similarity_law_q_conv(l_obukhov, h, z1)
-      implicit none
 
-      real l_obukhov, h, z1
-      real correction_q_conv
-
-      similarity_law_q_conv = log(h/z1)
-     $                        - correction_q_conv(h, l_obukhov)
-     $                        + correction_q_conv(z1, l_obukhov)
-
-      end function
 !-----------------------------------------------------------------------
 !--- Stable ------------------------------------------------------------
+!    Correction functions based on Mauritsen et al. 2007
       real function f_tau(ri)
       implicit none
 
